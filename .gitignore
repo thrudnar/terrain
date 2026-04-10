@@ -34,3 +34,5 @@ ui/build/
 
 # Ruff
 .ruff_cache/
+.anthropic_api_key
+docker-compose.prod.yml
