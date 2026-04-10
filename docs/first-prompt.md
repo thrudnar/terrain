@@ -1,0 +1,1 @@
+Read the charter prompt and the design doc. Create a plan for Phase 1: Foundation. Don't write any code yet.  
