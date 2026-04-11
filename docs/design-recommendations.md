@@ -153,7 +153,7 @@ prompts/
 ```json
 {
   "candidate_id": "candidate_1",
-  "name": "Test Candidate",
+  "name": "Candidate Name",
   "active_prompts": {
     "scoring": "v2",
     "cover_letter": "v1",
@@ -563,7 +563,7 @@ ollama pull llama3.1:8b-instruct-q4_K_M
 5. **`score_prompts` and `cover_letter_prompts`:** Content migrates to prompt files on disk (`prompts/candidate_1/scoring/v1.md`, etc.). Activation metadata goes into the `candidates` collection.
 6. **Validation pass:** Count documents, verify no orphaned scores or applications, spot-check a few opportunities end-to-end.
 
-All migrated data gets `candidate_id: "candidate_1"` (Tim).
+All migrated data gets `candidate_id: "candidate_1"`.
 
 ---
 
@@ -689,7 +689,7 @@ The specs should be completable by someone who is not an expert in the specific 
 
 ### Workflow
 
-Claude Code generates these spec documents as one of its first deliverables when the project starts. Tim works through them in whatever order makes sense — some are prerequisites for development (dev environment, Git repo), others are needed before production deployment (Mac Mini, NAS). Each spec is self-contained enough to hand to a fresh Claude conversation: "Help me do what this document describes."
+Claude Code generates these spec documents as one of its first deliverables when the project starts. The owner works through them in whatever order makes sense — some are prerequisites for development (dev environment, Git repo), others are needed before production deployment (Mac Mini, NAS). Each spec is self-contained enough to hand to a fresh Claude conversation: "Help me do what this document describes."
 
 ---
 
@@ -749,7 +749,7 @@ The CLAUDE.md for the new project should include this directive:
 
 ## 14. External Dependency: voice-of-tim Skill
 
-The cover letter generator depends on Anthropic's skills beta API to invoke the `voice-of-tim` skill, which governs Tim's writing voice and style. This skill is maintained outside the application — it's a personal style resource that Tim uses across Claude products (claude.ai, Claude Code, Cowork, API).
+The cover letter generator depends on Anthropic's skills beta API to invoke the `voice-of-tim` skill, which governs the candidate's writing voice and style. This skill is maintained outside the application — it's a personal style resource used across Claude products (claude.ai, Claude Code, Cowork, API).
 
 **How it's accessed:** The Anthropic adapter passes `skills-2025-10-02` as a beta header and includes the skill identifier in the API call. The skill shapes *how* the cover letter sounds; the prompt file shapes *what* it says.
 

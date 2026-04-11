@@ -34,5 +34,17 @@ ui/build/
 
 # Ruff
 .ruff_cache/
+
+# Secrets & credentials
 .anthropic_api_key
 docker-compose.prod.yml
+
+# Claude Code local settings (contains dev-specific permissions)
+.claude/settings.local.json
+
+# Candidate-specific content (personal career data, LinkedIn session)
+prompts/candidate_1/
+linkedin-profile/
+
+# Infrastructure specs (contain IPs, hostnames, credentials references)
+docs/infrastructure/

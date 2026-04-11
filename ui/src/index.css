@@ -1,0 +1,258 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   terrAIn Design Tokens — Single source of truth
+   See ui/DESIGN.md for the full specification.
+   ═══════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Background Surfaces ── */
+  --color-bg-base: #08090a;
+  --color-bg-panel: #0f1011;
+  --color-bg-surface: #191a1b;
+  --color-bg-hover: #28282c;
+
+  /* ── Text ── */
+  --color-text-primary: #f7f8f8;
+  --color-text-secondary: #d0d6e0;
+  --color-text-muted: #8a8f98;
+  --color-text-subtle: #62666d;
+
+  /* ── Brand & Accent ── */
+  --color-brand: #5e6ad2;
+  --color-accent: #7170ff;
+  --color-accent-hover: #828fff;
+
+  /* ── Pipeline Stage Colors ── */
+  --color-stage-harvest: #e0a862;
+  --color-stage-harvest-tint: rgba(224, 168, 98, 0.12);
+  --color-stage-dedup: #9fc9a2;
+  --color-stage-dedup-tint: rgba(159, 201, 162, 0.12);
+  --color-stage-score: #9fbbe0;
+  --color-stage-score-tint: rgba(159, 187, 224, 0.12);
+  --color-stage-promote: #c0a8dd;
+  --color-stage-promote-tint: rgba(192, 168, 221, 0.12);
+  --color-stage-coverletter: #dfa88f;
+  --color-stage-coverletter-tint: rgba(223, 168, 143, 0.12);
+
+  /* ── Recommendation Tier Colors ── */
+  --color-tier-strong: #27a644;
+  --color-tier-strong-tint: rgba(39, 166, 68, 0.12);
+  --color-tier-good: #9fc9a2;
+  --color-tier-good-tint: rgba(159, 201, 162, 0.12);
+  --color-tier-marginal: #d97706;
+  --color-tier-marginal-tint: rgba(217, 119, 6, 0.12);
+  --color-tier-skip: #62666d;
+  --color-tier-skip-tint: rgba(255, 255, 255, 0.05);
+
+  /* ── Status ── */
+  --color-success: #27a644;
+  --color-warning: #d97706;
+  --color-error: #cf2d56;
+  --color-info: #7170ff;
+
+  /* ── Borders ── */
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-default: rgba(255, 255, 255, 0.08);
+  --color-border-solid-primary: #23252a;
+  --color-border-solid-secondary: #34343a;
+
+  /* ── Overlay ── */
+  --color-overlay: rgba(0, 0, 0, 0.85);
+
+  /* ── Translucent Surfaces ── */
+  --color-surface-02: rgba(255, 255, 255, 0.02);
+  --color-surface-03: rgba(255, 255, 255, 0.03);
+  --color-surface-04: rgba(255, 255, 255, 0.04);
+  --color-surface-05: rgba(255, 255, 255, 0.05);
+
+  /* ── Brand Tint ── */
+  --color-brand-tint-08: rgba(94, 106, 210, 0.08);
+  --color-brand-tint-12: rgba(94, 106, 210, 0.12);
+
+  /* ── Fonts ── */
+  --font-sans: "Inter", "SF Pro Display", -apple-system, system-ui, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+
+  /* ── Border Radius ── */
+  --radius-micro: 2px;
+  --radius-standard: 4px;
+  --radius-comfortable: 6px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
+  --radius-large: 22px;
+  --radius-pill: 9999px;
+
+  /* ── Sidebar ── */
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 48px;
+}
+
+/* ── Font Setup ── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap");
+
+/* ── Global Styles ── */
+html {
+  font-feature-settings: "cv01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-base);
+  line-height: 1.5;
+}
+
+/* ── Typography Utilities ── */
+.text-display-xl {
+  font-size: 72px;
+  font-weight: 510;
+  line-height: 1;
+  letter-spacing: -1.584px;
+}
+
+.text-display {
+  font-size: 48px;
+  font-weight: 510;
+  line-height: 1;
+  letter-spacing: -1.056px;
+}
+
+.text-h1 {
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.13;
+  letter-spacing: -0.704px;
+}
+
+.text-h2 {
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.33;
+  letter-spacing: -0.288px;
+}
+
+.text-h3 {
+  font-size: 20px;
+  font-weight: 590;
+  line-height: 1.33;
+  letter-spacing: -0.24px;
+}
+
+.text-body-lg {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.165px;
+}
+
+.text-body-medium {
+  font-size: 16px;
+  font-weight: 510;
+  line-height: 1.5;
+}
+
+.text-body-semibold {
+  font-size: 16px;
+  font-weight: 590;
+  line-height: 1.5;
+}
+
+.text-small {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.165px;
+}
+
+.text-small-medium {
+  font-size: 15px;
+  font-weight: 510;
+  line-height: 1.6;
+  letter-spacing: -0.165px;
+}
+
+.text-caption-lg {
+  font-size: 14px;
+  font-weight: 510;
+  line-height: 1.5;
+  letter-spacing: -0.182px;
+}
+
+.text-caption {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.13px;
+}
+
+.text-label {
+  font-size: 12px;
+  font-weight: 510;
+  line-height: 1.4;
+}
+
+.text-micro {
+  font-size: 11px;
+  font-weight: 510;
+  line-height: 1.4;
+}
+
+.text-tiny {
+  font-size: 10px;
+  font-weight: 510;
+  line-height: 1.5;
+  letter-spacing: -0.15px;
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-mono-caption {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-mono-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(113, 112, 255, 0.3);
+  color: var(--color-text-primary);
+}
