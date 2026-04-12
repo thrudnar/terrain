@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from terrain.pipeline.prescore import PreScoreFilter, PRESCORE_SYSTEM_PROMPT, PRESCORE_USER_TEMPLATE, DESCRIPTION_TRUNCATE
+from terrain.pipeline.prescore import PreScoreFilter, DESCRIPTION_TRUNCATE
 from terrain.providers.ai.ollama import OllamaProvider
 
 logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
@@ -24,6 +24,22 @@ logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
+    from pathlib import Path
+    from terrain.providers.ai.base import CompletionRequest
+
+    # Load prompt from file (same source as the pipeline uses)
+    prompt_path = Path("prompts/candidate_1/prescore/v1.md")
+    prompt_content = prompt_path.read_text()
+    if "## User Prompt Template" in prompt_content:
+        parts = prompt_content.split("## User Prompt Template", 1)
+        system_prompt = parts[0].strip()
+        user_template = parts[1].strip()
+        if "## Notes" in user_template:
+            user_template = user_template.split("## Notes")[0].strip()
+    else:
+        system_prompt = prompt_content
+        user_template = "Title: {title}\nCompany: {company}\n\nDescription (excerpt):\n{description_excerpt}\n\nDecision:"
+
     # Connect to DB
     client = AsyncIOMotorClient("mongodb://localhost:27017/terrain")
     db = client.get_default_database()
@@ -60,16 +76,15 @@ async def main() -> None:
                 excerpt = excerpt[:last_space]
             excerpt += "..."
 
-        user_prompt = PRESCORE_USER_TEMPLATE.format(
+        user_prompt = user_template.format(
             title=title,
             company=company,
             description_excerpt=excerpt,
         )
 
-        from terrain.providers.ai.base import CompletionRequest
         request = CompletionRequest(
             model="llama3.1:8b-instruct-q4_K_M",
-            system_prompt=PRESCORE_SYSTEM_PROMPT,
+            system_prompt=system_prompt,
             user_prompt=user_prompt,
             temperature=0.0,
             max_tokens=100,
@@ -172,12 +187,18 @@ async def main() -> None:
     if tp + fn > 0:
         print(f"  Recall:    {100*tp/(tp+fn):.1f}% (of actual bad, how many did we catch)")
 
-    # Cost impact
-    avg_cost = 4.508166 / 298
+    # Cost impact (estimate based on total scored opportunities)
+    # Fetch actual total spend from api_usage collection if available
+    total_cost = 0.0
+    usage_cursor = db.api_usage.find({"task": "scoring"})
+    async for doc in usage_cursor:
+        total_cost += doc.get("cost_usd", 0.0)
+    avg_cost = total_cost / len(results) if results else 0.0
     savings = len(would_filter) * avg_cost
     print()
     print(f"=== COST IMPACT ===")
     print(f"Sonnet calls saved: {len(would_filter)}")
+    print(f"Avg cost per score: ${avg_cost:.4f} (from {len(results)} scored opps, ${total_cost:.2f} total)")
     print(f"Savings per run: ${savings:.2f}")
     print(f"Estimated cost after pre-filter: ${len(would_keep) * avg_cost:.2f}")
 

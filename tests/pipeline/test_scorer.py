@@ -28,7 +28,7 @@ SAMPLE_SCORING_JSON = json.dumps(
         "work_type": 90,
         "work_arrangement": "Remote",
         "salary_range": "Not stated",
-        "match_summary": "Clean structural match. Tim's org-building experience maps directly.",
+        "match_summary": "Clean structural match. Org-building experience maps directly.",
         "strengths": ["org-building", "data platform", "regulated industry"],
         "gaps": ["unfamiliar domain"],
         "recommendation": "STRONG FIT",

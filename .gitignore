@@ -11,6 +11,10 @@ venv/
 
 # Environment
 .env
+.env.local
+.env.development
+.env.production
+.env.*.local
 
 # IDE
 .vscode/
@@ -45,6 +49,25 @@ docker-compose.prod.yml
 # Candidate-specific content (personal career data, LinkedIn session)
 prompts/candidate_1/
 linkedin-profile/
+
+# Certificates and private keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Log files
+*.log
+
+# Docker local overrides
+docker-compose.override.yml
 
 # Infrastructure specs (contain IPs, hostnames, credentials references)
 docs/infrastructure/

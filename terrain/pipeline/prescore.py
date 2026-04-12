@@ -4,11 +4,13 @@ Uses a cheap/local model (Ollama or Haiku) to make a binary "score" or "skip" de
 based on title + truncated description. Much cheaper than full scoring with Sonnet.
 
 Configuration: enabled via candidate's filter_rules or a simple feature flag.
+Prompt content lives in prompts/<candidate_id>/prescore/v1.md (gitignored, not in repo).
 """
 
 import json
 import logging
 import time
+from pathlib import Path
 from typing import Optional
 
 from terrain.models.opportunity import Opportunity, PipelineState
@@ -21,37 +23,6 @@ logger = logging.getLogger(__name__)
 # Truncate descriptions to this length for the pre-filter prompt
 DESCRIPTION_TRUNCATE = 600
 
-PRESCORE_SYSTEM_PROMPT = """You are screening job listings for a senior data executive. Your job is to make a fast binary decision: is this worth a detailed evaluation, or is it an obvious mismatch?
-
-THE CANDIDATE:
-- Target level: Director, Sr. Director, VP in data engineering, analytics, data platform, or data/AI infrastructure
-- Target function: Data leadership and org-building, NOT hands-on IC work
-- Industries: FinTech, Telehealth, Ecommerce preferred, but open to others if the mandate fits
-- Geography: US remote strongly preferred
-- NOT a fit for: product management, software engineering, DevOps/SRE, cybersecurity, sales, or domain-specialist roles requiring expertise in clinical trials, credit risk, ERP finance, mobile attribution, or gaming
-
-SKIP if any of these are true:
-- The role is an individual contributor position (building models, writing code daily, hands-on engineering)
-- The role is in the wrong function (product, engineering, security, sales, marketing)
-- The role requires deep domain expertise the candidate lacks (VBC healthcare, biopharma, credit risk, ERP systems)
-- The role is a combined CIO/CTO scope where IT infrastructure management is a core responsibility
-- The role is below Director level (manager, analyst, associate, specialist)
-- The role is at a staffing/recruiting firm
-
-SCORE if:
-- Data leadership at Director+ level with org-building or platform mandate
-- Even if the domain is unfamiliar, if the hire is for leadership ability not domain expertise
-
-Respond with ONLY a JSON object: {"decision": "score"} or {"decision": "skip", "reason": "<one sentence>"}"""
-
-PRESCORE_USER_TEMPLATE = """Title: {title}
-Company: {company}
-
-Description (excerpt):
-{description_excerpt}
-
-Decision:"""
-
 
 class PreScoreFilter:
     """Lightweight AI pre-filter that screens opportunities before full scoring."""
@@ -61,12 +32,31 @@ class PreScoreFilter:
         opportunity_repo: OpportunityRepository,
         candidate_repo: CandidateRepository,
         ai_provider: AIProvider,
+        prompts_dir: Path = Path("prompts"),
         enabled: bool = True,
     ) -> None:
         self._opp_repo = opportunity_repo
         self._cand_repo = candidate_repo
         self._ai = ai_provider
+        self._prompts_dir = prompts_dir
         self.enabled = enabled
+
+    def _load_prompt(self, candidate_id: str) -> tuple[str, str]:
+        """Load prescore prompt file, return (system_prompt, user_template)."""
+        prompt_path = self._prompts_dir / candidate_id / "prescore" / "v1.md"
+        content = prompt_path.read_text()
+
+        if "## User Prompt Template" in content:
+            parts = content.split("## User Prompt Template", 1)
+            system_prompt = parts[0].strip()
+            user_template = parts[1].strip()
+            if "## Notes" in user_template:
+                user_template = user_template.split("## Notes")[0].strip()
+        else:
+            system_prompt = content
+            user_template = "Title: {title}\nCompany: {company}\n\nDescription (excerpt):\n{description_excerpt}\n\nDecision:"
+
+        return system_prompt, user_template
 
     def _truncate_description(self, text: str) -> str:
         """Truncate description to first N characters, breaking at a word boundary."""
@@ -100,11 +90,11 @@ class PreScoreFilter:
             logger.warning("Failed to parse pre-score response: %s", text[:100])
             return "score", ""
 
-    async def evaluate_one(self, opp: Opportunity) -> tuple[str, str]:
+    async def evaluate_one(self, opp: Opportunity, system_prompt: str, user_template: str) -> tuple[str, str]:
         """Evaluate a single opportunity. Returns (decision, reason)."""
         excerpt = self._truncate_description(opp.description_text)
 
-        user_prompt = PRESCORE_USER_TEMPLATE.format(
+        user_prompt = user_template.format(
             title=opp.title,
             company=opp.company,
             description_excerpt=excerpt,
@@ -112,7 +102,7 @@ class PreScoreFilter:
 
         request = CompletionRequest(
             model="llama3.1:8b-instruct-q4_K_M",
-            system_prompt=PRESCORE_SYSTEM_PROMPT,
+            system_prompt=system_prompt,
             user_prompt=user_prompt,
             temperature=0.0,
             max_tokens=100,
@@ -142,6 +132,8 @@ class PreScoreFilter:
                 errors=[f"Candidate {candidate_id} not found"],
             )
 
+        system_prompt, user_template = self._load_prompt(candidate_id)
+
         from terrain.providers.db.base import OpportunityFilters
         filters = OpportunityFilters(pipeline_state=PipelineState.HARVESTED)
         harvested = await self._opp_repo.find_for_ui(candidate_id, filters)
@@ -152,7 +144,7 @@ class PreScoreFilter:
 
         for opp in harvested:
             try:
-                decision, reason = await self.evaluate_one(opp)
+                decision, reason = await self.evaluate_one(opp, system_prompt, user_template)
                 if decision == "skip":
                     await self._opp_repo.update_pipeline_state(
                         candidate_id, opp.id or "", PipelineState.FILTERED
@@ -183,7 +175,8 @@ class PreScoreFilter:
                 errors=[f"Opportunity {opportunity_id} not found"],
             )
 
-        decision, reason = await self.evaluate_one(opp)
+        system_prompt, user_template = self._load_prompt(candidate_id)
+        decision, reason = await self.evaluate_one(opp, system_prompt, user_template)
         return StageResult(
             stage=PipelineStageEnum.DEDUP,
             items_processed=1,

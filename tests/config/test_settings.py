@@ -17,7 +17,7 @@ class TestSettings:
 
     def test_from_env(self) -> None:
         env = {
-            "MONGO_URI": "mongodb://dbhost.local:27017/terrain",
+            "MONGO_URI": "mongodb://db.example.local:27017/terrain",
             "OLLAMA_URL": "http://localhost:11434",
             "ANTHROPIC_API_KEY": "sk-test-key",
             "ENVIRONMENT": "production",
@@ -25,7 +25,7 @@ class TestSettings:
         }
         with patch.dict(os.environ, env, clear=True):
             s = Settings(_env_file=None)
-        assert s.mongo_uri == "mongodb://dbhost.local:27017/terrain"
+        assert s.mongo_uri == "mongodb://db.example.local:27017/terrain"
         assert s.environment == "production"
         assert s.anthropic_api_key == "sk-test-key"
 

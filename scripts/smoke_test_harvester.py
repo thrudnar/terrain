@@ -55,7 +55,7 @@ async def run() -> None:
         current_url = page.url
         if "/login" in current_url or "/authwall" in current_url:
             print(f"FAIL: Redirected to login ({current_url})")
-            print("LinkedIn session has expired. Refresh it on Aldhani.")
+            print("LinkedIn session has expired. Refresh the browser profile on the dev machine.")
             await ctx.close()
             return
 

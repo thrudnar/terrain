@@ -318,7 +318,7 @@ Wire services together, verify end-to-end:
 
 - Owner completes infrastructure specs
 - Run migration script
-- Deploy to Mac Mini
+- Deploy to production server
 - Verify health endpoint, run scheduled harvest, confirm full pipeline
 
 ---
@@ -348,19 +348,19 @@ Command or script to confirm it's working.
 
 **Critical principle: minimum viable infrastructure.** Each spec asks the owner to deliver only the floor — a running service with permissions for the application to manage itself. The owner does NOT create database schemas, collections, indexes, or application-level configuration. Examples:
 - MongoDB: running instance, user with readWrite + dbAdmin on `terrain` database. Application creates everything else.
-- Mac Mini: macOS with Python 3.11+ and SSH access. Application creates venv, installs deps, writes launchd plist.
+- Application server: macOS with Python 3.11+ and SSH access. Application creates venv, installs deps, writes launchd plist.
 - Ollama: installed with model pulled. Application configures the connection.
 
 Generate specs for:
-1. MongoDB on NAS (Docker container, persistent volume, network binding, auth)
-2. Mac Mini Python environment (Python 3.11+, system or Homebrew)
-3. Mac Mini application service (launchd plist, auto-restart, logging)
-4. Ollama on Mac Mini (install, Llama 3.1 8B Q4 model)
-5. Mac Mini networking (static IP or hostname, port access)
+1. MongoDB on database server (Docker container, persistent volume, network binding, auth)
+2. Application server Python environment (Python 3.11+, system or Homebrew)
+3. Application server service (launchd plist, auto-restart, logging)
+4. Ollama on application server (install, Llama 3.1 8B Q4 model)
+5. Application server networking (static IP or hostname, port access)
 6. LinkedIn authenticated session (Playwright browser profile)
 7. Anthropic API access (key, Batch API, rate tier)
 8. Git repository (repo, clone on both machines, SSH keys)
-9. Dev environment on MacBook (Docker Desktop + Mongo, Python venv, Node.js + npm)
+9. Dev environment (Docker Desktop + Mongo, Python venv, Node.js + npm)
 
 ---
 
@@ -406,40 +406,6 @@ Structured JSON logging via Python `logging`. Development: stdout. Production: l
 Log: pipeline stage start/complete with duration and counts, AI calls with model/tokens/latency, slow DB operations, scheduler events, errors with tracebacks.
 
 `GET /api/health` returns: status, database connectivity, Ollama connectivity, scheduler state, last run timestamps, uptime.
-
----
-
-## Environment Configuration
-
-```
-# .env.dev
-MONGO_URI=mongodb://localhost:27017/terrain
-OLLAMA_URL=http://localhost:11434
-ANTHROPIC_API_KEY=sk-...
-ENVIRONMENT=development
-LOG_LEVEL=DEBUG
-
-# .env.prod
-MONGO_URI=mongodb://dbhost.local:27017/terrain
-OLLAMA_URL=http://localhost:11434
-ANTHROPIC_API_KEY=sk-...
-ENVIRONMENT=production
-LOG_LEVEL=INFO
-```
-
-Loaded via Pydantic Settings. `.env` files not committed. `.env.example` committed with placeholder values.
-
----
-
-## Deployment
-
-**Development (MacBook):** `docker compose up -d` (Mongo), `uvicorn terrain.api.main:app --reload`, `cd ui && npm run dev`
-
-**Production (Mac Mini M1 + NAS):**
-- App: native Python via launchd (auto-restart, boot start). 8GB RAM — no Docker overhead.
-- Ollama: native via launchd, Llama 3.1 8B Q4 (~5GB). M1 Metal acceleration.
-- MongoDB: Docker on NAS, persistent volume, LAN accessible.
-- Deploy: `git pull && make restart` on Mac Mini.
 
 ---
 

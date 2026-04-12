@@ -28,9 +28,9 @@ The current schema splits a job's lifecycle across three tables (`jobs`, `job_sc
   "candidate_id": "candidate_1",
   "source": {
     "board": "linkedin",
-    "board_job_id": "3948271650",
+    "board_job_id": "1234567890",
     "collection": "top-applicant",
-    "url": "https://linkedin.com/jobs/view/3948271650",
+    "url": "https://linkedin.com/jobs/view/{board_job_id}",
     "first_seen": "2026-04-01T00:00:00Z",
     "last_seen": "2026-04-08T00:00:00Z",
     "posted_date": "2026-03-28T00:00:00Z"
@@ -58,7 +58,7 @@ The current schema splits a job's lifecycle across three tables (`jobs`, `job_sc
     "seniority": 80,
     "work_type": 90,
     "work_arrangement": "Hybrid",
-    "salary_range": "$280K–$320K",
+    "salary_range": "$180K–$220K",
     "match_summary": "...",
     "strengths": ["..."],
     "gaps": ["..."],
@@ -71,7 +71,7 @@ The current schema splits a job's lifecycle across three tables (`jobs`, `job_sc
     "status": "new | applied | waiting | phone_screen | interview | offer | rejected | withdrawn | dead",
     "applied_date": "2026-04-03T00:00:00Z",
     "application_link": "https://...",
-    "contact": "Jane Smith, Recruiter",
+    "contact": "...",
     "resume_version": "v1",
     "source": "harvested | manual"
   },
@@ -463,54 +463,40 @@ The team/roster/hiring/tasks views from the current UI are excluded entirely. Th
 - **App:** Run FastAPI directly (`uvicorn terrain.api.main:app --reload`)
 - **Frontend:** Vite dev server with hot reload (`npm run dev`)
 
-### Production environment (Mac Mini M1 + NAS)
+### Production environment
 
-**Mac Mini runs:**
+**Application server runs:**
 - The Python application (API + scheduler + pipeline workers) — managed by `launchd` (native macOS process manager, auto-restarts on crash, starts on boot)
 - Ollama as a persistent service (also via `launchd`) — Llama 3.1 8B Q4 loaded and ready
 - Nginx as a reverse proxy (optional, for clean URL routing between API and static frontend assets)
 
-**NAS runs:**
-- MongoDB in Docker — persistent storage on the NAS's drives, accessible on the LAN at a fixed IP/hostname
+**Database server runs:**
+- MongoDB in Docker — persistent storage, accessible on the LAN at a fixed IP/hostname
 
-**Why launchd over Docker on the Mac Mini:** The Mini has 8GB RAM. Running the Python app natively (no container overhead) and Ollama natively (needs direct access to Metal/GPU for M1 acceleration) is more memory-efficient. Docker on the Mini would add overhead for no real benefit — the app isn't complex enough to need container isolation from itself.
+**Why launchd over Docker for the app:** Running the Python app natively (no container overhead) and Ollama natively (needs direct access to Metal/GPU for Apple Silicon acceleration) is more memory-efficient. Docker would add overhead for no real benefit — the app isn't complex enough to need container isolation from itself.
 
-**Why Docker for Mongo on the NAS:** The NAS already has Docker support, Mongo's official image is well-maintained, and isolating the database on dedicated storage hardware is the right separation. The NAS is always-on and purpose-built for persistent data.
+**Why Docker for Mongo on the database server:** Docker support is already available, Mongo's official image is well-maintained, and isolating the database on dedicated storage hardware is the right separation.
 
 ### Deployment workflow
 
 **Recommended: Git-based with a simple pull-and-restart pattern.**
 
-1. Development happens on the MacBook, committed to a Git repo (GitHub or self-hosted)
-2. Mac Mini has the repo cloned
-3. Deploy: `ssh mini && cd terrain && git pull && make restart`
+1. Development happens on the dev machine, committed to a Git repo
+2. Production server has the repo cloned
+3. Deploy: `ssh prod && cd terrain && git pull && make restart`
 4. `make restart` triggers `launchctl` to restart the app service
 
 **Why not rsync:** Git gives you rollback, history, and the confidence that what's running in prod is exactly a committed state. rsync can drift.
 
-**Why not full CI/CD:** This is a single-user system on your home network. A multi-stage pipeline with build servers would be overengineering. The `git pull && make restart` pattern is honest, reliable, and fast.
+**Why not full CI/CD:** This is a single-user system on a private network. A multi-stage pipeline with build servers would be overengineering. The `git pull && make restart` pattern is honest, reliable, and fast.
 
 ### Environment configuration
 
-```
-# .env.dev (MacBook)
-MONGO_URI=mongodb://localhost:27017/terrain
-OLLAMA_URL=http://localhost:11434
-ANTHROPIC_API_KEY=sk-...
-ENVIRONMENT=development
-
-# .env.prod (Mac Mini)
-MONGO_URI=mongodb://dbhost.local:27017/terrain
-OLLAMA_URL=http://localhost:11434
-ANTHROPIC_API_KEY=sk-...
-ENVIRONMENT=production
-```
-
-The application reads config from environment variables (via Pydantic Settings). The `.env` files are NOT committed to the repo — they live on each machine.
+The application reads config from environment variables (via Pydantic Settings). See `.env.example` for the variable names and defaults. The `.env` files are NOT committed to the repo — they live on each machine.
 
 ---
 
-## 9. Local AI: Ollama + Llama on Mac Mini
+## 9. Local AI: Ollama + Llama
 
 ### Recommendation: Ollama as a persistent service for classification tasks
 
@@ -531,7 +517,7 @@ The application reads config from environment variables (via Pydantic Settings).
 | Match scoring | Nuanced judgment against full career profile, calibrated prompts |
 | Cover letter generation | Quality is everything, voice-of-tim skill integration |
 
-**Ollama setup on Mac Mini:**
+**Ollama setup on the application server:**
 ```bash
 # Install (one-time)
 curl -fsSL https://ollama.com/install.sh | sh
@@ -621,79 +607,7 @@ The pipeline dashboard aggregates error states across opportunities for a health
 
 ---
 
-## 12. Infrastructure Dependency Specifications
-
-### Purpose
-
-The re-arch depends on several infrastructure components that the owner (Tim) must provision outside the application development workflow. Each dependency gets a standalone specification document in `docs/infrastructure/` within the repo. These specs are designed to be **portable** — you can bring any one of them into a separate Claude conversation and get walked through the setup without needing context about the larger project.
-
-### Spec document format
-
-Each spec follows this structure:
-
-```markdown
-# [Dependency Name]
-
-## What this is
-One paragraph: what you're setting up and why the application needs it.
-
-## What "done" looks like
-Acceptance criteria — the specific, testable conditions that confirm this
-dependency is ready. Example: "The application can connect to MongoDB at
-the configured URI and read/write documents."
-
-## What the application expects
-- Connection string format / environment variable name
-- Port(s)
-- File path(s)
-- Credentials format
-- Any version requirements
-
-## Setup guidance
-Step-by-step instructions (or enough context for a Claude conversation
-to walk you through it). Includes platform-specific notes where relevant.
-
-## Verification
-A command or script you can run to confirm the dependency is working.
-Example: `mongosh mongodb://dbhost.local:27017 --eval "db.stats()"`
-```
-
-### Dependencies to specify
-
-| # | Dependency | Where | Notes |
-|---|-----------|-------|-------|
-| 1 | **MongoDB on NAS** | NAS (Docker) | Container setup, persistent volume, network binding, auth credentials, backup strategy |
-| 2 | **Mac Mini Python environment** | Mac Mini | Python 3.11+, venv or system install, pip dependencies |
-| 3 | **Mac Mini application service** | Mac Mini | launchd plist for the app process, auto-restart, logging, environment variables |
-| 4 | **Ollama on Mac Mini** | Mac Mini | Install, pull Llama 3.1 8B Q4 model, configure as persistent service via launchd |
-| 5 | **Mac Mini networking** | Mac Mini / Router | Static IP or hostname (e.g., `mini.local`), firewall rules for app port and Ollama port |
-| 6 | **LinkedIn authenticated session** | MacBook → Mac Mini | Playwright browser profile creation, session persistence, transfer to production |
-| 7 | **Anthropic API access** | Anthropic console | API key, Batch API access confirmation, rate tier verification |
-| 8 | **Git repository** | GitHub or self-hosted | Repo creation, clone on both machines, SSH key setup for Mac Mini pulls |
-| 9 | **Dev environment on MacBook** | MacBook | Docker Desktop (Mongo container), Python venv, Node.js + npm for React frontend |
-
-### Principle: Minimum viable infrastructure
-
-Each spec asks the owner to deliver only the **infrastructure floor** — the minimum that can't be automated. Everything above that floor is Claude Code's job.
-
-**What the owner delivers:** A running service, network accessible, with credentials that have sufficient permissions for the application to manage itself.
-
-**What Claude Code handles:** All application-level setup — creating database collections, defining indexes, seeding data, installing Python dependencies, configuring application services, scaffolding the codebase.
-
-**Examples:**
-- **MongoDB:** Owner delivers a running Mongo instance with a user that has `readWrite` and `dbAdmin` permissions on the `terrain` database. Claude Code creates all collections, indexes, and seed documents.
-- **Mac Mini:** Owner delivers macOS with Python 3.11+ installed and SSH access. Claude Code creates the venv, installs dependencies, writes the launchd plist, and configures the service.
-- **Ollama:** Owner installs Ollama and pulls the model. Claude Code configures the connection and writes any prompt templates.
-
-The specs should be completable by someone who is not an expert in the specific technology. A SQL person should be able to stand up Mongo from the spec without needing to understand MongoDB's data modeling — because they don't need to. They just need a running server with the right permissions.
-
-### Workflow
-
-Claude Code generates these spec documents as one of its first deliverables when the project starts. The owner works through them in whatever order makes sense — some are prerequisites for development (dev environment, Git repo), others are needed before production deployment (Mac Mini, NAS). Each spec is self-contained enough to hand to a fresh Claude conversation: "Help me do what this document describes."
-
----
-
-## 13. Testing Strategy
+## 12. Testing Strategy
 
 ### Principle: Test as you build, not after
 
@@ -747,7 +661,7 @@ The CLAUDE.md for the new project should include this directive:
 
 ---
 
-## 14. External Dependency: voice-of-tim Skill
+## 13. External Dependency: voice-of-tim Skill
 
 The cover letter generator depends on Anthropic's skills beta API to invoke the `voice-of-tim` skill, which governs the candidate's writing voice and style. This skill is maintained outside the application — it's a personal style resource used across Claude products (claude.ai, Claude Code, Cowork, API).
 
@@ -761,7 +675,7 @@ The cover letter generator depends on Anthropic's skills beta API to invoke the 
 
 ---
 
-## 15. Application Logging & Health
+## 14. Application Logging & Health
 
 ### Recommendation: Structured logging with Python's logging module, health endpoint
 
@@ -791,7 +705,7 @@ This gives you a single URL to hit to verify the production system is alive and 
 
 ---
 
-## 16. Development Phasing
+## 15. Development Phasing
 
 ### Build order: Foundation → Services → Integration → UI
 
@@ -842,14 +756,14 @@ Wire the services together and verify end-to-end:
 
 ### Phase 5: Production deployment
 
-- Owner completes infrastructure dependency specs (Mongo on NAS, Mac Mini setup, Ollama)
+- Owner completes infrastructure dependency specs (database server, application server, Ollama)
 - Run migration script against production MongoDB
-- Deploy application to Mac Mini
+- Deploy application to production server
 - Verify health endpoint, run scheduled harvest, confirm full pipeline
 
 ---
 
-## 17. What's Deferred (Intentionally)
+## 16. What's Deferred (Intentionally)
 
 These items are acknowledged in the requirements but explicitly out of scope for the initial re-arch build:
 

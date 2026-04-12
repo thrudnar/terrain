@@ -36,7 +36,7 @@ MOCK_SCORE_RESPONSE = json.dumps({
     "work_type": 90,
     "work_arrangement": "Remote",
     "salary_range": "Not stated",
-    "match_summary": "Strong org-building match. Tim's experience maps directly.",
+    "match_summary": "Strong org-building match. Experience maps directly.",
     "strengths": ["org-building", "data platform", "regulated industry"],
     "gaps": ["unfamiliar domain"],
     "recommendation": "STRONG FIT",
