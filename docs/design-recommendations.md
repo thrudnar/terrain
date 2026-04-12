@@ -58,7 +58,7 @@ The current schema splits a job's lifecycle across three tables (`jobs`, `job_sc
     "seniority": 80,
     "work_type": 90,
     "work_arrangement": "Hybrid",
-    "salary_range": "$180K–$220K",
+    "salary_range": "$X–$Y",
     "match_summary": "...",
     "strengths": ["..."],
     "gaps": ["..."],
